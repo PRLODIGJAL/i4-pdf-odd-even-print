@@ -15,7 +15,11 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, ttk
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_APP = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _APP not in sys.path:
+    sys.path.insert(0, _APP)
+import paths as _paths  # noqa: E402
+_paths.install()
 from i4_core import (  # noqa: E402
     ALL_EXTS, ConvItem, ConvStatus, PrintMode,
     collect_items, is_supported, run_pipeline,
@@ -186,7 +190,7 @@ class App(tk.Tk):
         hdr = tk.Frame(self, bg=BG)
         hdr.pack(fill="x", padx=14, pady=(12, 4))
         ttk.Label(hdr, text="PDF 奇偶拼接打印", style="Title.TLabel").pack(side="left")
-        ttk.Label(hdr, text="Word / Excel → 合集 PDF · 自动补空白页",
+        ttk.Label(hdr, text="Word / Excel / PDF → 合集 PDF · 自动补空白页",
                   style="Sub.TLabel").pack(side="left", padx=(10, 0))
 
         # 输入区
@@ -198,7 +202,7 @@ class App(tk.Tk):
         top_row.pack(fill="x", padx=10, pady=(10, 2))
         self.lbl_hint = tk.Label(
             top_row,
-            text="⬇  拖入 Word / Excel 文件 · 按拖入顺序拼接",
+            text="⬇  拖入 Word / Excel / PDF 文件或文件夹 · 按顺序拼接",
             font=(FONT, 10), bg=DZ_BG, fg=MUTED, anchor="w")
         self.lbl_hint.pack(side="left", fill="x", expand=True)
 
@@ -264,7 +268,7 @@ class App(tk.Tk):
         sf = tk.Frame(self, bg=STATUS_BG)
         sf.pack(fill="x", side="bottom")
         self.lbl_status = tk.Label(
-            sf, text="把 Word / Excel 拖进上方那块（或点「浏览…」）",
+            sf, text="把 Word / Excel / PDF 文件或文件夹拖进上方那块（或点「浏览…」）",
             font=(FONT, 10), bg=STATUS_BG, fg=TEXT2, anchor="w",
             padx=14, pady=6)
         self.lbl_status.pack(fill="x")
@@ -295,21 +299,37 @@ class App(tk.Tk):
     def _on_browse(self):
         exts = " ".join(f"*{e}" for e in sorted(ALL_EXTS))
         files = filedialog.askopenfilenames(
-            title="选择 Word / Excel 文件",
-            filetypes=[("Word / Excel", exts), ("所有文件", "*.*")])
+            title="选择 Word / Excel / PDF 文件",
+            filetypes=[("Word / Excel / PDF", exts),
+                       ("PDF", "*.pdf"),
+                       ("所有文件", "*.*")])
         if files:
             self._add_files([Path(f) for f in files])
 
     def _add_files(self, paths: list[Path]):
+        """把拖入/浏览的文件、或文件夹（展开成这一层的 Word/Excel/PDF）加进清单。"""
+        added = 0
         for p in paths:
-            if is_supported(p) and not any(it.src == p for it in self.items):
+            if p.is_dir():
+                # 文件夹 → 只收这一层认得的 Word / Excel / PDF（子目录不钻）
+                for c in sorted(p.glob("*")):
+                    if c.is_file() and is_supported(c) \
+                            and not any(it.src == c for it in self.items):
+                        self.items.append(ConvItem(src=c))
+                        added += 1
+            elif is_supported(p) and not any(it.src == p for it in self.items):
                 self.items.append(ConvItem(src=p))
+                added += 1
         self._refresh_list()
+        if added:
+            self._set_status(f"已加进 {added} 份文件 · 选好模式后点「开始拼接」")
+        else:
+            self._set_status("没有找到能拼接的文件（认 Word / Excel / PDF）", warn=True)
 
     def _on_clear(self):
         self.items.clear()
         self._refresh_list()
-        self._set_status("已清空。把 Word / Excel 拖进上方那块")
+        self._set_status("已清空。把 Word / Excel / PDF 文件或文件夹拖进上方那块")
 
     def _refresh_list(self):
         self.listbox.delete(0, "end")

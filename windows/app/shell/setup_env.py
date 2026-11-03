@@ -37,11 +37,12 @@ import sys
 import bootui as B
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-VENV = os.path.join(HERE, ".venv")
-APP = os.path.join(HERE, "i4_app.py")
+ROOT = os.path.dirname(os.path.dirname(HERE))
+VENV = os.path.join(ROOT, ".venv")
+APP = os.path.join(ROOT, "app", "ui", "i4_app.py")
 
 TOOL_NAME = "PDF 奇偶拼接打印工具"
-TOOL_VERSION = "1.0"
+TOOL_VERSION = "2.0"
 
 # ── 依赖清单：**按平台分两张表** ──────────────────────────────────────────
 #   pymupdf     —— 两边都要：PDF 页数 / 补白 / 拼接。
@@ -292,7 +293,7 @@ def dep_versions(py):
 
 def ready_rows(py, tk_ok=True, tk_why="能起 Tk"):
     """环境就绪时的固定三行 —— 每条路都长这样，方便扫。"""
-    B.item(B.OK, "虚拟环境", os.path.relpath(VENV, HERE))
+    B.item(B.OK, "虚拟环境", os.path.relpath(VENV, ROOT))
     B.item(B.OK, "依赖", dep_versions(py))
     B.item(B.OK if tk_ok else B.FAIL, "界面库", tk_why)
 
@@ -385,7 +386,7 @@ def do_check():
     exist = os.path.isdir(VENV)
     B.section("", "运行环境")
     B.item(B.OK if exist else B.SKIP, "虚拟环境",
-           "%s（%s）" % (os.path.relpath(VENV, HERE), "存在" if exist else "不存在"))
+           "%s（%s）" % (os.path.relpath(VENV, ROOT), "存在" if exist else "不存在"))
     ok, why = probe(py)
     if not ok:
         B.item(B.FAIL, "可用性", "不可用 —— %s" % why)
@@ -406,7 +407,7 @@ def main():
     B.head(TOOL_NAME, "v" + TOOL_VERSION, "",
            [("系统", B.os_line()),
             ("Python", "%d.%d.%d" % sys.version_info[:3]),
-            ("位置", HERE)])
+            ("位置", ROOT)])
 
     if "--check" in args:
         return do_check()

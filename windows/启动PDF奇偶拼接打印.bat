@@ -41,7 +41,7 @@ exit /b 1
 :RUN
 set "PYTHONIOENCODING=utf-8"
 set "PYTHONUTF8=1"
-%PYEXE% "%~dp0setup_env.py" %*
+%PYEXE% "%~dp0app\shell\setup_env.py" %*
 set "RC=%ERRORLEVEL%"
 
 if "%RC%"=="0" goto DONE

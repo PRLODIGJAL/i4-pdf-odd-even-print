@@ -10,7 +10,25 @@ import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import os
+import sys
+
+
+def _project_root(_p):
+    """向上找到含 app/paths.py 的那一级（不再按层数数）。"""
+    while True:
+        if os.path.isfile(os.path.join(_p, "app", "paths.py")):
+            return _p
+        _up = os.path.dirname(_p)
+        if _up == _p:
+            return _p
+        _p = _up
+
+
+_ROOT = _project_root(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(_ROOT, "app"))
+import paths  # noqa: E402
+paths.install()
 
 import pymupdf as fitz  # noqa: E402
 from i4_core import (  # noqa: E402
